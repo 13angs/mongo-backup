@@ -1,49 +1,46 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mongodb-backup-script
+  name: backup-script
 data:
   backup.sh: |
-    #!/bin/sh
+    #!/bin/bash
+
     # Backup script content here
-    #BACKUP_NAME=${BACKUP_VERSION}_$(TZ=${TIMEZONE} date +"%Y%m%d%H%M%S")
-    #BACKUP_FILE=${BACKUP_DIR}/${BACKUP_NAME}
+    BACKUP_NAME=${BACKUP_VERSION}_$(TZ=${TIMEZONE} date +"%Y%m%d%H%M%S")
+    BACKUP_FILE=${BACKUP_DIR}/${BACKUP_NAME}
 
-    #echo ${BACKUP_FILE}
-    echo "Running..."
+    echo ${BACKUP_FILE}
 
+---
 
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: hello
+  name: {{ .Values.mongoBackup.name }}-cron
 spec:
-  schedule: "* * * * *"
+  schedule: {{ quote .Values.mongoBackup.schedule }}
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: mongodb-backup
-            image: ubuntu
+          - name: {{ .Values.mongoBackup.name }}
+            image: {{ .Values.mongoBackup.image.repository }}:{{ .Values.mongoBackup.image.tag }}
+            env:
+            - name: TIMEZONE
+              value: {{ .Values.mongoBackup.env.tz }}
+            - name: BACKUP_VERSION
+              value: {{ .Values.mongoBackup.env.backupVersion }}
+            - name: BACKUP_DIR
+              value: {{ .Values.mongoBackup.env.backupDir }}
             command: ["/scripts/backup.sh"]
             volumeMounts:
             - name: backup-script
-              mountPath: /scripts
+              mountPath: "/scripts"
           restartPolicy: OnFailure
           volumes:
           - name: backup-script
             configMap:
-              name: mongodb-backup-script
+              name: backup-script
               defaultMode: 0500
-          restartPolicy: OnFailure
-          # containers:
-          # - name: mongodb-backup
-          #   image: busybox:1.28
-          #   env:
-          #   - name: TIMEZONE
-          #     value: "Asia/Bangkok"
-          #   - name: BACKUP_VERSION
-          #     value: "v0.0.1"
-          #   - name: BACKUP_DIR
-          #     value: "/root"
