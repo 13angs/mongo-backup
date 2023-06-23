@@ -9,8 +9,51 @@ data:
     # Backup script content here
     BACKUP_NAME=${BACKUP_VERSION}_$(TZ=${TIMEZONE} date +"%Y%m%d%H%M%S")
     BACKUP_FILE=${BACKUP_DIR}/${BACKUP_NAME}
+    COMPRESSED_FILE=${BACKUP_NAME}.tar.gz
 
-    echo ${BACKUP_FILE}
+    # Perform the mongo backup
+    echo "Performing mongo backup..."
+
+    BACKUP_CMD="mongodump --host ${MONGO_HOST} --port 27017 --username ${MONGO_USER} --password ${MONGO_PASS} --out ${BACKUP_FILE}"
+
+    echo "Executing: ${BACKUP_CMD}"
+
+    # execute the backup command
+    ${BACKUP_CMD}
+
+    # compress the backup using gzip
+    echo "Compressing the backup..."
+    cd ${BACKUP_DIR}
+    tar -czf ${COMPRESSED_FILE} ./${BACKUP_NAME}
+    cd /
+
+    # Remove the backup
+    rm -rf ${BACKUP_FILE}
+
+    # Display the backup contents
+    echo "Inside ${BACKUP_DIR}."
+    ls -la ${BACKUP_DIR}
+
+    # Decompress the backup file
+    # echo "Decompressing the backup..."
+    # cd ${BACKUP_DIR}
+    # tar -xzf ${COMPRESSED_FILE} -C .
+    # cd /
+
+    # # Display the decompressed contents
+    # echo "Inside ${BACKUP_FILE}."
+    # ls -la ${BACKUP_FILE}
+
+    echo "Finished backing up ${BACKUP_FILE}!"
+    echo "-------------------------------------------------------------"
+    echo
+
+    # Delay for 1 second before starting the next backup
+    sleep 1 
+
+    # Perform the mariadb backup
+    echo "Performing mariadb backup..."
+
 
 ---
 
@@ -34,6 +77,18 @@ spec:
               value: {{ .Values.mongoBackup.env.backupVersion }}
             - name: BACKUP_DIR
               value: {{ .Values.mongoBackup.env.backupDir }}
+            - name: MONGO_HOST
+              value: mongodb-srv.{{ .Release.Namespace }}
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: rootUser
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: rootPass
             command: ["/scripts/backup.sh"]
             volumeMounts:
             - name: backup-script
