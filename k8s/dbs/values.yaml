@@ -1,0 +1,29 @@
+mongodb:
+  name: mongodb
+  image:
+    repository: mongo
+    tag:
+      dev: 6-jammy
+      staging: 6-jammy
+      prod: 6-jammy
+  labels:
+    app: mongodb
+    team: backend
+  secrets:
+    rootUser: "root"
+    rootPass: "password"
+  persistence:
+    size:
+      dev: 10Gi
+      staging: 10Gi
+      prod: 10Gi
+    storageClassName: linode-block-storage
+    hostPath:
+      path: /mnt/data/mongodb
+    mountPath: /data/db
+  ports:
+    default: 27017
+
+global:
+  envs:
+    tz: Asia/Bangkok
