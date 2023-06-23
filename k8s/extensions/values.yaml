@@ -1,0 +1,10 @@
+mongoExpress:
+  name: mongo-express
+  image:
+    repository: mongo-express
+    tag: latest
+  labels:
+    app: mongo-express
+    team: backend
+  ports:
+    default: 8081

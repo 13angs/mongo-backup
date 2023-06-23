@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}-depl
+  labels:
+    app: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}
+    team: {{ .Values.mongoExpress.labels.team }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}
+    spec:
+      containers:
+        - name: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}-con
+          image: {{ .Values.mongoExpress.image.repository }}:{{ .Values.mongoExpress.image.tag }}
+          ports:
+            - containerPort: {{ .Values.mongoExpress.ports.default }}
+          env:
+            - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+              valueFrom:
+                secretKeyRef: 
+                  name: mongodb-{{ .Release.Namespace }}-secret
+                  key: rootUser
+            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+              valueFrom:
+                secretKeyRef: 
+                  name: mongodb-{{ .Release.Namespace }}-secret
+                  key: rootPass
+            - name: ME_CONFIG_MONGODB_SERVER
+              value: mongodb-{{ .Release.Namespace }}-srv
+            - name: ME_CONFIG_BASICAUTH_USERNAME
+              valueFrom:
+                secretKeyRef: 
+                  name: mongodb-{{ .Release.Namespace }}-secret
+                  key: rootUser
+            - name: ME_CONFIG_BASICAUTH_PASSWORD
+              valueFrom:
+                secretKeyRef: 
+                  name: mongodb-{{ .Release.Namespace }}-secret
+                  key: rootPass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}-srv
+spec:
+  selector:
+    app: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}
+  ports:
+    - port: 8081
+      name: {{ .Values.mongoExpress.name }}-{{ .Release.Namespace }}-srv
+      targetPort: 8081
+      protocol: TCP
+  type: NodePort
