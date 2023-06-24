@@ -12,17 +12,25 @@ mongodb:
   secrets:
     rootUser: "root"
     rootPass: "password"
-  persistence:
-    size:
-      dev: 10Gi
-      staging: 10Gi
-      prod: 10Gi
-    storageClassName: linode-block-storage
-    hostPath:
-      path: /mnt/data/mongodb
-    mountPath: /data/db
   ports:
     default: 27017
+
+mariadb:
+  name: mariadb
+  image:
+    repository: mariadb
+    tag:
+      dev: 10-jammy
+      staging: 10-jammy
+      prod: 10-jammy
+  labels:
+    app: mariadb
+    team: backend
+  secrets:
+    rootUser: "root"
+    rootPass: "password"
+  ports:
+    default: 3306
 
 global:
   envs:

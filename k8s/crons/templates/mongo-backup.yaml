@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: backup-script
+  name: mongo-backup-script
 data:
   backup.sh: |
     #!/bin/bash
@@ -91,11 +91,11 @@ spec:
                   key: rootPass
             command: ["/scripts/backup.sh"]
             volumeMounts:
-            - name: backup-script
+            - name: mongo-backup-script
               mountPath: "/scripts"
           restartPolicy: OnFailure
           volumes:
-          - name: backup-script
+          - name: mongo-backup-script
             configMap:
-              name: backup-script
+              name: mongo-backup-script
               defaultMode: 0500

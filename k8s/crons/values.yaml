@@ -8,4 +8,15 @@ mongoBackup:
     tz: 'Asia/Bangkok'
     backupVersion: 'v0.0.1'
     backupDir: '/backups/mongo'
+
+mariadbBackup:
+  name: mariadb-backup
+  image:
+    repository: mariadb
+    tag: 10-jammy
+  schedule: '* * * * *'
+  env:
+    tz: 'Asia/Bangkok'
+    backupVersion: 'v0.0.1'
+    backupDir: '/backups/mariadb'
     

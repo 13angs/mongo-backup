@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-backup-script
+data:
+  backup.sh: |
+    #!/bin/bash
+
+    # Backup script content here
+    BACKUP_NAME=${BACKUP_VERSION}_$(TZ=${TIMEZONE} date +"%Y%m%d%H%M%S")
+    BACKUP_FILE=${BACKUP_DIR}/${BACKUP_NAME}
+    COMPRESSED_FILE=${BACKUP_FILE}.sql.gz
+
+    # Perform the mariadb backup
+    echo "Performing mariadb backup..."
+
+    BACKUP_CMD="mysqldump --host=${MARIADB_HOST} --all-databases --user ${MARIADB_USER} -p${MARIADB_PASS} --port 3306 | gzip > ${COMPRESSED_FILE}"
+
+    # create backup dir
+    echo "creating backup dir..."
+    mkdir -p ${BACKUP_DIR}
+
+    # # cd into backup dir
+    # echo "cd into backup dir..."
+    # cd ${BACKUP_DIR}
+
+    echo "Executing: ${BACKUP_CMD}"
+
+    # execute the backup command
+    # ${BACKUP_CMD}
+    mysqldump --host=${MARIADB_HOST} --all-databases --user ${MARIADB_USER} -p${MARIADB_PASS} --port 3306 | gzip > ${COMPRESSED_FILE}
+
+    # Display the backup contents
+    echo "Inside ${BACKUP_DIR}."
+    ls -la ${BACKUP_DIR}
+
+    # Decompress the backup file
+    echo "Decompressing the backup..."
+    gzip -d ${COMPRESSED_FILE}
+
+    cat ${BACKUP_FILE}.sql
+
+    # Display the decompressed contents
+    echo "Inside ${BACKUP_DIR}."
+    ls -la ${BACKUP_DIR}
+
+    echo "Finished backing up ${COMPRESSED_FILE}!"
+    echo "-------------------------------------------------------------"
+    echo
+
+    # Delay for 1 second before starting the next backup
+    sleep 1 
+
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.mariadbBackup.name }}-cron
+spec:
+  schedule: {{ quote .Values.mariadbBackup.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Values.mariadbBackup.name }}
+            image: {{ .Values.mariadbBackup.image.repository }}:{{ .Values.mariadbBackup.image.tag }}
+            env:
+            - name: TIMEZONE
+              value: {{ .Values.mariadbBackup.env.tz }}
+            - name: BACKUP_VERSION
+              value: {{ .Values.mariadbBackup.env.backupVersion }}
+            - name: BACKUP_DIR
+              value: {{ .Values.mariadbBackup.env.backupDir }}
+            - name: MARIADB_HOST
+              value: mariadb-srv.{{ .Release.Namespace }}
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: rootUser
+            - name: MARIADB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: rootPass
+            command: ["/scripts/backup.sh"]
+            volumeMounts:
+            - name: mariadb-backup-script
+              mountPath: "/scripts"
+          restartPolicy: OnFailure
+          volumes:
+          - name: mariadb-backup-script
+            configMap:
+              name: mariadb-backup-script
+              defaultMode: 0500
