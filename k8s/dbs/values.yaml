@@ -32,6 +32,23 @@ mariadb:
   ports:
     default: 3306
 
+sqlserver:
+  name: sqlserver
+  image:
+    repository: mcr.microsoft.com/mssql/server
+    tag:
+      dev: 2022-latest
+      staging: 2022-latest
+      prod: 2022-latest
+  labels:
+    app: sqlserver
+    team: backend
+  secrets:
+    rootUser: "SA"
+    rootPass: "P@ssw0rd"
+  ports:
+    default: 1433
+
 global:
   envs:
     tz: Asia/Bangkok

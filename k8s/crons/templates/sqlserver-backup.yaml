@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sqlserver-backup-script
+data:
+  backup.sh: |
+    #!/bin/bash
+
+    # Backup script content here
+    BACKUP_NAME=${BACKUP_VERSION}_$(TZ=${TIMEZONE} date +"%Y%m%d%H%M%S")
+    BACKUP_FILE=${BACKUP_DIR}/${BACKUP_NAME}.bak
+
+    # Perform the SQL Server backup
+    echo "Performing SQL Server backup..."
+
+    mkdir -p ${BACKUP_DIR}
+
+    /opt/mssql-tools/bin/sqlcmd -S ${SQLSERVER_HOST} -U SA -P ${SQLSERVER_PASS} -Q "BACKUP DATABASE master TO DISK = '${BACKUP_FILE}'"
+
+    # Display the backup contents
+    echo "Inside ${BACKUP_DIR}:"
+    ls -la ${BACKUP_DIR}
+
+    echo "Finished backing up ${BACKUP_FILE}!"
+    echo "-------------------------------------------------------------"
+    echo
+
+    # Delay for 1 second before starting the next backup
+    sleep 1
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.sqlserverBackup.name }}-cron
+spec:
+  schedule: {{ quote .Values.sqlserverBackup.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Values.sqlserverBackup.name }}
+            image: {{ .Values.sqlserverBackup.image.repository }}:{{ .Values.sqlserverBackup.image.tag }}
+            # Other container configuration...
+            securityContext:
+              privileged: true
+            env:
+            - name: TIMEZONE
+              value: {{ .Values.sqlserverBackup.env.tz }}
+            - name: BACKUP_VERSION
+              value: {{ .Values.sqlserverBackup.env.backupVersion }}
+            - name: BACKUP_DIR
+              value: {{ .Values.sqlserverBackup.env.backupDir }}
+            - name: SQLSERVER_HOST
+              value: sqlserver-srv.{{ .Release.Namespace }}
+            - name: SQLSERVER_USER
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: rootUser
+            - name: SQLSERVER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: rootPass
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: rootPass
+            - name: ACCEPT_EULA
+              value: 'Y'
+            command: ["/scripts/backup.sh"]
+            volumeMounts:
+            - name: sqlserver-backup-script
+              mountPath: "/scripts"
+              
+          restartPolicy: OnFailure
+          volumes:
+          - name: sqlserver-backup-script
+            configMap:
+              name: sqlserver-backup-script
+              defaultMode: 0777

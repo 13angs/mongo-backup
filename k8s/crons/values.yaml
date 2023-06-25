@@ -19,4 +19,15 @@ mariadbBackup:
     tz: 'Asia/Bangkok'
     backupVersion: 'v0.0.1'
     backupDir: '/backups/mariadb'
+
+sqlserverBackup:
+  name: sqlserver-backup
+  image:
+    repository: mcr.microsoft.com/mssql/server
+    tag: 2022-latest
+  schedule: '* * * * *'
+  env:
+    tz: 'Asia/Bangkok'
+    backupVersion: 'v0.0.1'
+    backupDir: '/var/opt/mssql/backup' # /var/opt/mssql/backup
     

@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.sqlserver.name }}-secret
+  namespace: {{ .Release.Namespace }}
+type: Opaque
+data:
+  rootUser: {{ .Values.sqlserver.secrets.rootUser | b64enc }}
+  rootPass: {{ .Values.sqlserver.secrets.rootPass | b64enc }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.sqlserver.name }}-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  sqlserverHostname: "sqlserver://{{ .Values.sqlserver.secrets.rootUser }}:{{ .Values.sqlserver.secrets.rootPass }}@{{ .Values.sqlserver.name }}-srv:27017"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.sqlserver.name }}-depl
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.sqlserver.labels.app }}
+    team: {{ .Values.sqlserver.labels.team }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.sqlserver.labels.app }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.sqlserver.labels.app }}
+    spec:
+      containers:
+        - name: {{ .Values.sqlserver.name }}-con
+          image: {{ .Values.sqlserver.image.repository }}:{{ .Values.sqlserver.image.tag.dev }}
+          ports:
+            - containerPort: {{ .Values.sqlserver.ports.default }} 
+          env:
+            - name: TZ
+              value: {{ .Values.global.envs.tz }}
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.sqlserver.name }}-secret
+                  key: rootPass
+            - name: ACCEPT_EULA
+              value: 'Y'
+            - name: MSSQL_TCP_PORT
+              value: "1433"
+            - name: MSSQL_ENABLE_TCP
+              value: "true"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.sqlserver.name }}-srv
+spec: 
+  selector:
+    app: {{ .Values.sqlserver.name }}
+  ports:
+    - port: {{ .Values.sqlserver.ports.default }} 
+      name: {{ .Values.sqlserver.name }}
+      targetPort: {{ .Values.sqlserver.ports.default }} 
