@@ -15,7 +15,7 @@ data:
 
     mkdir -p ${BACKUP_DIR}
 
-    /opt/mssql-tools/bin/sqlcmd -S ${SQLSERVER_HOST} -U SA -P ${SQLSERVER_PASS} -Q "BACKUP DATABASE master TO DISK = '${BACKUP_FILE}'"
+    /opt/mssql-tools/bin/sqlcmd -S ${SQLSERVER_HOST} -U SA -P ${SQLSERVER_PASS} -Q "BACKUP DATABASE master TO DISK = '${BACKUP_FILE}'" -o ${BACKUP_FILE}
 
     # Display the backup contents
     echo "Inside ${BACKUP_DIR}:"
