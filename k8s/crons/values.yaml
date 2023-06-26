@@ -30,4 +30,15 @@ sqlserverBackup:
     tz: 'Asia/Bangkok'
     backupVersion: 'v0.0.1'
     backupDir: '/var/opt/mssql/backup' # /var/opt/mssql/backup
+
+staticBackup:
+  name: static-backup
+  image:
+    repository: 13angs/kubectl
+    tag: latest
+  schedule: '* * * * *'
+  env:
+    tz: 'Asia/Bangkok'
+    backupVersion: 'v0.0.1'
+    backupDir: '/var/opt/mssql/backup' # /var/opt/mssql/backup
     

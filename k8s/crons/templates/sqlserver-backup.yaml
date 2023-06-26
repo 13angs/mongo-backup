@@ -43,9 +43,6 @@ spec:
           containers:
           - name: {{ .Values.sqlserverBackup.name }}
             image: {{ .Values.sqlserverBackup.image.repository }}:{{ .Values.sqlserverBackup.image.tag }}
-            # Other container configuration...
-            securityContext:
-              privileged: true
             env:
             - name: TIMEZONE
               value: {{ .Values.sqlserverBackup.env.tz }}

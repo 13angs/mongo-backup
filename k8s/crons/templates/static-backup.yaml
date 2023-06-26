@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: static-backup-script
+data:
+  backup.sh: |
+    #!/bin/bash
+
+    # Perform the SQL Server backup
+    echo "Performing SQL Server backup..."
+
+    echo "Running kubectl..."
+    # kubectl get pods
+
+
+    ls -la /kubeconfig/.kube
+    echo "Finished backing up ${BACKUP_FILE}!"
+    echo "-------------------------------------------------------------"
+    echo
+
+    # Delay for 1 second before starting the next backup
+    sleep 1
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.staticBackup.name }}-cron
+spec:
+  schedule: {{ quote .Values.staticBackup.schedule }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: {{ .Values.staticBackup.name }}
+            image: {{ .Values.staticBackup.image.repository }}:{{ .Values.staticBackup.image.tag }}
+            env:
+            - name: TIMEZONE
+              value: {{ .Values.staticBackup.env.tz }}
+            - name: KUBECONFIG
+              value: /kubeconfig/.kube/config
+            command: ["/scripts/backup.sh"]
+            volumeMounts:
+            - name: static-backup-script
+              mountPath: "/scripts"
+            - name: kubeconfig
+              mountPath: /kubeconfig/.kube
+              
+          restartPolicy: OnFailure
+          volumes:
+          - name: static-backup-script
+            configMap:
+              name: static-backup-script
+              defaultMode: 0777
+          - name: kubeconfig
+            hostPath:
+              path: /home/vscode/.kube
+              defaultMode: 0777
